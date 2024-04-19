@@ -8,9 +8,9 @@ from tqdm import tqdm
 
 def sift_detector(image_path):
     img = cv2.imread(image_path)
-    image_path = image_path.replace('Final Project/', 'Final Project/sift/')
-    if os.path.exists('Final Project/sift') is False:
-        os.makedirs('Final Project/sift')
+    # image_path = image_path.replace('Final Project/', 'Final Project/sift-2/')
+    # if os.path.exists('Final Project/sift-2') is False:
+    #     os.makedirs('Final Project/sift-2')
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     sift = cv2.SIFT_create()
     kp, des = sift.detectAndCompute(gray, None)
@@ -30,20 +30,27 @@ def sift_matcher(image1, image2):
     good = []
     for m, n in matches:
         if m.distance < 0.75 * n.distance:
-            good.append(m)
+            good.append([m])
 
-    # img3 = cv2.drawMatchesKnn(gray1, kp1, gray2, kp2, good, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-    # cv2.imwrite(f'Final Project/sift/matches/{image1}_{image2}.png', img3)
+    # # Convert numpy arrays of keypoints to list of cv2.KeyPoint objects
+    # kp1_cv2 = [cv2.KeyPoint(x, y, size=1) for x, y in kp1]
+    # kp2_cv2 = [cv2.KeyPoint(x, y, size=1) for x, y in kp2]
+    #
+    # img3 = cv2.drawMatchesKnn(gray1, kp1_cv2, gray2, kp2_cv2, good,
+    #                           None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    # cv2.imwrite(f'Final Project/sift-2/matches/{image1}_{image2}.png', img3)
     # print(f"Matches saved for {image1} and {image2}")
 
-    src_pts = np.float32([kp1[m.queryIdx] for m in good]).reshape(-1, 1, 2)
-    dst_pts = np.float32([kp2[m.trainIdx] for m in good]).reshape(-1, 1, 2)
+    print(f"Number of good matches: {len(good)}")
+
+    src_pts = np.float32([kp1[m.queryIdx] for match in good for m in match]).reshape(-1, 1, 2)
+    dst_pts = np.float32([kp2[m.trainIdx] for match in good for m in match]).reshape(-1, 1, 2)
 
     E, mask = cv2.findEssentialMat(src_pts, dst_pts, focal=39.14, pp=(1920/2, 1080/2)
                                    , method=cv2.RANSAC, prob=0.999, threshold=1.0)
     _, R, t, mask = cv2.recoverPose(E, src_pts, dst_pts, focal=39.14, pp=(1920/2, 1080/2))
 
-    return R, t
+    return None, None
 
 
 def triangulate_points(kp1, kp2, R, t):
@@ -72,17 +79,21 @@ def triangulate_points(kp1, kp2, R, t):
     return points_3d.T
 
 
+def numerical_sort_key(filename):
+    return int(''.join(filter(str.isdigit, filename)))
+
+
 def main():
     try:
         folder = 'Final Project'
-        images = [img for img in os.listdir(folder) if img.endswith(".png")]
+        images = sorted([img for img in os.listdir(folder) if img.endswith(".png")], key=numerical_sort_key)
         poses = {}
         print("Images scanned successfully")
 
         for i in tqdm(range(len(images))):
-            for j in range(i + 1, len(images)):
-                R, t = sift_matcher(images[i], images[j])
-                poses[(i, j)] = (R, t)
+            j = i + 1 if i + 1 < len(images) else 0
+            R, t = sift_matcher(images[i], images[j])
+            poses[(i, j)] = (R, t)
         print("Poses calculated successfully")
 
         # Triangulate points
@@ -108,6 +119,7 @@ def main():
 
     except Exception as e:
         print(f'Error: {e}')
+        print(f"Stack trace: {e.with_traceback()}")
 
 
 if __name__ == "__main__":
