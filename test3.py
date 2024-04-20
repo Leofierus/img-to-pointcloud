@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Sun Apr 21 02:37:54 2024
+
+@author: kevin
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Thu Apr 18 11:33:17 2024
 
 @author: kevin
@@ -23,12 +30,37 @@ def transform_points(points, R, t):
     t = np.reshape(t, (1, 3))
     return (R @ points.T).T + t
 
+def preprocess_point_cloud(pcd, voxel_size):
+    pcd_down = pcd.voxel_down_sample(voxel_size)
+    radius_normal = voxel_size * 2
+    pcd_down.estimate_normals(
+        o3d.geometry.KDTreeSearchParamHybrid(radius=radius_normal, max_nn=30))
+    return pcd_down
+
+def execute_icp(source, target, voxel_size):
+    # Preprocess both source and target point clouds
+    source_down = preprocess_point_cloud(source, voxel_size)
+    target_down = preprocess_point_cloud(target, voxel_size)
+    
+    # Determine the radius for ICP convergence
+    radius_icp = voxel_size * 15
+
+    # Perform ICP registration
+    icp_result = o3d.pipelines.registration.registration_icp(
+        source_down, target_down, radius_icp, 
+        np.identity(4),  # Initial transformation matrix
+        o3d.pipelines.registration.TransformationEstimationPointToPoint(),
+        o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=2000)
+    )
+    return icp_result.transformation
+
+
 def draw_registration_result(source, target, transformation):
     source_temp = copy.deepcopy(source)
     target_temp = copy.deepcopy(target)
     source_temp.paint_uniform_color([1, 0.706, 0])
     target_temp.paint_uniform_color([0, 0.651, 0.929])
-    source_temp.transform(transformation.transformation)
+    source_temp.transform(transformation)
     o3d.visualization.draw_geometries([source_temp, target_temp],
                                       zoom=0.4459,
                                       front=[0.9288, -0.2951, -0.2242],
@@ -159,8 +191,11 @@ for i in tqdm(range(len(image_paths))):
 
                 temp_pcd = o3d.geometry.PointCloud()
                 temp_pcd.points = o3d.utility.Vector3dVector(points3D)
+                #val = copy.deepcopy(temp_pcd)
                 new_temp_points = transform_points(np.asarray(temp_pcd.points), R, t)
                 temp_pcd.points = o3d.utility.Vector3dVector(new_temp_points)
+                #o3d.visualization.draw_geometries([temp_pcd, val])
+                
 
                 if inner_prev_pcd is None:
                     local_pcd = temp_pcd
@@ -177,11 +212,16 @@ for i in tqdm(range(len(image_paths))):
                 count += 1
                 pcd_matches.append(count)
     print(f"Processed {count} images")
-
+    
     # local_pcd = local_pcd.voxel_down_sample(voxel_size=0.05)
     if prev_pcd is None:
         prev_pcd = local_pcd
     else:
+# =============================================================================
+#         transformation_icp = execute_icp(local_pcd, prev_pcd, voxel_size=0.01)
+#         prev_pcd.transform(transformation_icp)
+# =============================================================================
+
         o3d.visualization.draw_geometries([prev_pcd])
         o3d.visualization.draw_geometries([local_pcd])
         transformation = o3d.pipelines.registration.registration_icp(
