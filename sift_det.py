@@ -8,9 +8,9 @@ from tqdm import tqdm
 
 def sift_detector(image_path):
     img = cv2.imread(image_path)
-    # image_path = image_path.replace('Final Project/', 'Final Project/sift-2/')
-    # if os.path.exists('Final Project/sift-2') is False:
-    #     os.makedirs('Final Project/sift-2')
+    # image_path = image_path.replace('Treasure_Chest/', 'Treasure_Chest/sift-2/')
+    # if os.path.exists('Treasure_Chest/sift-2') is False:
+    #     os.makedirs('Treasure_Chest/sift-2')
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     sift = cv2.SIFT_create()
     kp, des = sift.detectAndCompute(gray, None)
@@ -23,8 +23,8 @@ def sift_detector(image_path):
 
 
 def sift_matcher(image1, image2):
-    kp1, des1, gray1, img1 = sift_detector(f'Final Project/{image1}')
-    kp2, des2, gray2, img2 = sift_detector(f'Final Project/{image2}')
+    kp1, des1, gray1, img1 = sift_detector(f'Treasure_Chest/{image1}')
+    kp2, des2, gray2, img2 = sift_detector(f'Treasure_Chest/{image2}')
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(des1, des2, k=2)
     good = []
@@ -38,19 +38,18 @@ def sift_matcher(image1, image2):
     #
     # img3 = cv2.drawMatchesKnn(gray1, kp1_cv2, gray2, kp2_cv2, good,
     #                           None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-    # cv2.imwrite(f'Final Project/sift-2/matches/{image1}_{image2}.png', img3)
+    # cv2.imwrite(f'Treasure_Chest/sift-2/matches/{image1}_{image2}.png', img3)
     # print(f"Matches saved for {image1} and {image2}")
 
-    print(f"Number of good matches: {len(good)}")
+    K = np.array([[(50 * 1920)/36, 0, 36/2], [0, (50 * 1080)/36, 36/2], [0, 0, 1]])  # Camera intrinsics
 
     src_pts = np.float32([kp1[m.queryIdx] for match in good for m in match]).reshape(-1, 1, 2)
     dst_pts = np.float32([kp2[m.trainIdx] for match in good for m in match]).reshape(-1, 1, 2)
 
-    E, mask = cv2.findEssentialMat(src_pts, dst_pts, focal=39.14, pp=(1920/2, 1080/2)
-                                   , method=cv2.RANSAC, prob=0.999, threshold=1.0)
-    _, R, t, mask = cv2.recoverPose(E, src_pts, dst_pts, focal=39.14, pp=(1920/2, 1080/2))
+    E, mask = cv2.findEssentialMat(src_pts, dst_pts, K, method=cv2.RANSAC, prob=0.999, threshold=1.0)
+    _, R, t, mask = cv2.recoverPose(E, src_pts, dst_pts, K)
 
-    return None, None
+    return R, t
 
 
 def triangulate_points(kp1, kp2, R, t):
@@ -64,13 +63,13 @@ def triangulate_points(kp1, kp2, R, t):
     kp1 = kp1[:min_num_keypoints]  # Trim keypoints to have the same number
     kp2 = kp2[:min_num_keypoints]
 
-    K = np.array([[39.14, 0, 36/2], [0, 39.14, 36/2], [0, 0, 1]])  # Camera intrinsics
+    K = np.array([[(50 * 1920) / 36, 0, 36 / 2], [0, (50 * 1080) / 36, 36 / 2], [0, 0, 1]])
 
     # Projection matrices
-    P1 = np.hstack((np.eye(3), np.zeros((3, 1))))
+    P1 = np.hstack((K, np.zeros((3, 1))))
     R2 = np.matmul(R, np.eye(3))
     t2 = t.reshape(3, 1)
-    P2 = np.hstack((R2, t2))
+    P2 = K @ np.hstack((R, t.reshape(3, 1)))
 
     # Triangulate points
     points_4d_homogeneous = cv2.triangulatePoints(P1, P2, kp1.T, kp2.T)
@@ -85,8 +84,9 @@ def numerical_sort_key(filename):
 
 def main():
     try:
-        folder = 'Final Project'
+        folder = 'Treasure_Chest'
         images = sorted([img for img in os.listdir(folder) if img.endswith(".png")], key=numerical_sort_key)
+        # images = images[:5]
         poses = {}
         print("Images scanned successfully")
 
@@ -99,9 +99,17 @@ def main():
         # Triangulate points
         triangulated_points = []
         for (i, j), (R, t) in tqdm(poses.items()):
-            kp1, des1, gray1, img1 = sift_detector(f'Final Project/{images[i]}')
-            kp2, des2, gray2, img2 = sift_detector(f'Final Project/{images[j]}')
+            kp1, des1, gray1, img1 = sift_detector(f'Treasure_Chest/{images[i]}')
+            kp2, des2, gray2, img2 = sift_detector(f'Treasure_Chest/{images[j]}')
             points_3d = triangulate_points(kp1, kp2, R, t)
+
+            points_3d[:, 0] = ((points_3d[:, 0] - np.min(points_3d[:, 0])) /
+                               (np.max(points_3d[:, 0]) - np.min(points_3d[:, 0])) * 100)
+            points_3d[:, 1] = ((points_3d[:, 1] - np.min(points_3d[:, 1])) /
+                                 (np.max(points_3d[:, 1]) - np.min(points_3d[:, 1])) * 100)
+            points_3d[:, 2] = ((points_3d[:, 2] - np.min(points_3d[:, 2])) /
+                                    (np.max(points_3d[:, 2]) - np.min(points_3d[:, 2])) * 100)
+
             triangulated_points.append(points_3d)
         print("Triangulated points successfully")
 
