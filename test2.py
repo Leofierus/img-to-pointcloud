@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 import open3d as o3d
 import matplotlib.pyplot as plt
+import plotly.graph_objs as go
 
 
 def numerical_sort_key(filename):
@@ -18,9 +19,9 @@ def numerical_sort_key(filename):
 
 
 # Placeholder for the image paths
-folder = 'Treasure_Chest/jpg/'
-images = sorted([img for img in os.listdir(folder) if img.endswith(".jpg")], key=numerical_sort_key)
-image_paths = images
+folder = 'Treasure_Chest/'
+images = sorted([img for img in os.listdir(folder) if img.endswith(".png")], key=numerical_sort_key)
+image_paths = images[:4]
 list_of_point_clouds = []
 list_of_poses = []
 
@@ -115,11 +116,11 @@ for i in tqdm(range(len(image_paths) - 1)):
 
         # Normalize the points3D
         points3D[:, 0] = (points3D[:, 0] - np.min(points3D[:, 0])) / (
-                    np.max(points3D[:, 0]) - np.min(points3D[:, 0])) * 100
+                    np.max(points3D[:, 0]) - np.min(points3D[:, 0])) * 1000
         points3D[:, 1] = (points3D[:, 1] - np.min(points3D[:, 1])) / (
-                    np.max(points3D[:, 1]) - np.min(points3D[:, 1])) * 100
+                    np.max(points3D[:, 1]) - np.min(points3D[:, 1])) * 1000
         points3D[:, 2] = (points3D[:, 2] - np.min(points3D[:, 2])) / (
-                    np.max(points3D[:, 2]) - np.min(points3D[:, 2])) * 100
+                    np.max(points3D[:, 2]) - np.min(points3D[:, 2])) * 1000
 
         # fig = plt.figure()
         # ax = fig.add_subplot(111, projection='3d')
@@ -138,6 +139,62 @@ for i in tqdm(range(len(image_paths) - 1)):
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(points3D)
         list_of_point_clouds.append(pcd)
+
+
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# for i in range(len(list_of_point_clouds)):
+#     ax.scatter(np.asarray(list_of_point_clouds[i].points)[:, 0],
+#                np.asarray(list_of_point_clouds[i].points)[:, 1],
+#                np.asarray(list_of_point_clouds[i].points)[:, 2])
+#     ax.set_xlabel('X Label')
+#     ax.set_ylabel('Y Label')
+#     ax.set_zlabel('Z Label')
+#
+# plt.show()
+# plt.close()
+
+# Create an empty list to store traces for each point cloud
+# traces = []
+#
+# # Iterate over each point cloud
+# for i, point_cloud in enumerate(list_of_point_clouds):
+#     # Extract x, y, and z coordinates from the point cloud
+#     x = np.asarray(point_cloud.points)[:, 0]
+#     y = np.asarray(point_cloud.points)[:, 1]
+#     z = np.asarray(point_cloud.points)[:, 2]
+#
+#     # Create a scatter trace for the current point cloud
+#     trace = go.Scatter3d(
+#         x=x,
+#         y=y,
+#         z=z,
+#         mode='markers',
+#         marker=dict(
+#             size=3,
+#             color='rgb(255, 0, 0)',  # You can specify the color here
+#             opacity=0.8
+#         ),
+#         name=f'Point Cloud {i+1}'
+#     )
+#
+#     # Append the trace to the list of traces
+#     traces.append(trace)
+#
+# # Create the layout for the plot
+# layout = go.Layout(
+#     scene=dict(
+#         xaxis=dict(title='X Label'),
+#         yaxis=dict(title='Y Label'),
+#         zaxis=dict(title='Z Label')
+#     )
+# )
+#
+# # Create the figure
+# fig = go.Figure(data=traces, layout=layout)
+#
+# # Show the interactive plot
+# fig.show()
 
 
 def transform_points(points, R, t):
