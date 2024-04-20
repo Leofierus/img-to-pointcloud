@@ -102,7 +102,7 @@ for i in tqdm(range(len(image_paths) - 1)):
 
         # Assuming 'points1' and 'points2' are arrays of matched keypoints from two images
         # And 'K' is the camera matrix obtained from calibration
-        E, mask = cv2.findEssentialMat(points1, points2, K, method=cv2.RANSAC, prob=0.999, threshold=1.2)
+        E, mask = cv2.findEssentialMat(points1, points2, K, method=cv2.RANSAC, prob=0.999, threshold=1)
         _, R, t, mask = cv2.recoverPose(E, points1, points2, K)
 
         projMatr1 = np.hstack((K, np.zeros((3, 1))))
@@ -113,14 +113,6 @@ for i in tqdm(range(len(image_paths) - 1)):
                                          projPoints2=points2.T)
         points3D = points4D[:3] / points4D[3]
         points3D = points3D.T
-
-        # Normalize the points3D
-        points3D[:, 0] = (points3D[:, 0] - np.min(points3D[:, 0])) / (
-                    np.max(points3D[:, 0]) - np.min(points3D[:, 0])) * 1000
-        points3D[:, 1] = (points3D[:, 1] - np.min(points3D[:, 1])) / (
-                    np.max(points3D[:, 1]) - np.min(points3D[:, 1])) * 1000
-        points3D[:, 2] = (points3D[:, 2] - np.min(points3D[:, 2])) / (
-                    np.max(points3D[:, 2]) - np.min(points3D[:, 2])) * 1000
 
         # fig = plt.figure()
         # ax = fig.add_subplot(111, projection='3d')
@@ -197,9 +189,21 @@ for i in tqdm(range(len(image_paths) - 1)):
 # fig.show()
 
 
+def normalize(points3D):
+    # Normalize the points3D
+    points3D[:, 0] = (points3D[:, 0] - np.min(points3D[:, 0])) / (
+                np.max(points3D[:, 0]) - np.min(points3D[:, 0])) * 1000
+    points3D[:, 1] = (points3D[:, 1] - np.min(points3D[:, 1])) / (
+                np.max(points3D[:, 1]) - np.min(points3D[:, 1])) * 1000
+    points3D[:, 2] = (points3D[:, 2] - np.min(points3D[:, 2])) / (
+                np.max(points3D[:, 2]) - np.min(points3D[:, 2])) * 1000
+    
+    return points3D
+
 def transform_points(points, R, t):
     # Apply the transformation to the points
-    return (R @ points.T + t).T
+    t = np.reshape(t, (1, 3))
+    return (R @ points.T).T + t
 
 
 def combine_point_clouds(list_of_point_clouds, list_of_poses):
@@ -214,17 +218,22 @@ def combine_point_clouds(list_of_point_clouds, list_of_poses):
 
         # Transform points
         transformed_points = transform_points(current_points, R, t)
+        #transformed_points = normalize(transformed_points)
 
         # Create a new point cloud from transformed points
         transformed_point_cloud = o3d.geometry.PointCloud()
         transformed_point_cloud.points = o3d.utility.Vector3dVector(transformed_points)
 
         # Merge the transformed point cloud into the global point cloud
-        global_point_cloud += transformed_point_cloud
+        if not global_point_cloud.has_points():
+            global_point_cloud = transformed_point_cloud
+        else:
+            global_points = np.vstack((np.asarray(global_point_cloud.points), transformed_points))
+            global_point_cloud.points = o3d.utility.Vector3dVector(global_points)
 
     # Optionally: remove duplicates and outliers
-    # global_point_cloud = global_point_cloud.voxel_down_sample(voxel_size=0.05)
-    # global_point_cloud, ind = global_point_cloud.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
+    global_point_cloud = global_point_cloud.voxel_down_sample(voxel_size=0.05)
+    global_point_cloud, ind = global_point_cloud.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
 
     return global_point_cloud
 
