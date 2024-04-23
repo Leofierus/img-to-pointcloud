@@ -202,9 +202,9 @@ for i in tqdm(range(len(image_paths))):
                     inner_prev_pcd = temp_pcd
                 else:
                     transformation = o3d.pipelines.registration.registration_icp(
-                        temp_pcd, inner_prev_pcd, max_correspondence_distance=10,
+                        temp_pcd, inner_prev_pcd, max_correspondence_distance=1,
                         estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
-                    temp_pcd = temp_pcd.transform(transformation.transformation)
+                    temp_pcd.transform(transformation.transformation)
                     local_pcd = temp_pcd
                     inner_prev_pcd = temp_pcd
 
@@ -225,13 +225,13 @@ for i in tqdm(range(len(image_paths))):
         o3d.visualization.draw_geometries([prev_pcd])
         o3d.visualization.draw_geometries([local_pcd])
         transformation = o3d.pipelines.registration.registration_icp(
-            local_pcd, prev_pcd, max_correspondence_distance=10,
+            local_pcd, prev_pcd, max_correspondence_distance=1,
             estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint())
         draw_registration_result(local_pcd, prev_pcd, transformation)
-        local_pcd = local_pcd.transform(transformation.transformation)
+        local_pcd.transform(transformation.transformation)
         prev_pcd = local_pcd
     
-    prev_pcd, _ = prev_pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
+    prev_pcd, _ = prev_pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=1.0)
 
 
 # =============================================================================
