@@ -23,14 +23,30 @@ def numerical_sort_key(filename):
     return int(''.join(filter(str.isdigit, filename)))
 
 
-def normalize_points(points, defined_range):
-    new_max = defined_range[1]
-    new_min = defined_range[0]
-    old_min = np.min(points)
-    old_max = np.max(points)
-    normalized_arr = (points - old_min) * (new_max - new_min) / (old_max - old_min) + new_min
+def normalize_points(pcd):
+    point_cloud = np.asarray(pcd.points)
+    # Compute the median of each axis
+    median = np.median(point_cloud, axis=0)
 
-    return normalized_arr
+    # Translate the point cloud to center it at the origin
+    centered_cloud = point_cloud - median
+
+    # Compute the first and third quartiles along each axis
+    Q1 = np.percentile(centered_cloud, 25, axis=0)
+    Q3 = np.percentile(centered_cloud, 75, axis=0)
+
+    # Calculate the maximum of these quartile distances
+    max_distance = np.max([np.abs(Q1), np.abs(Q3)])
+
+    # Calculate the scaling factor as the reciprocal of the maximum distance
+    scale_factor = 1 / max_distance
+
+    # Apply the scaling factor to the point cloud
+    normalized_cloud = centered_cloud * scale_factor
+
+    pcd.points = o3d.utility.Vector3dVector(normalized_cloud)
+
+    return pcd
 
 
 def detect_features(img):
@@ -133,9 +149,11 @@ ply_folder = 'Treasure_Chest/plys-2'
 #               [0, f, -7424.71],
 #               [0, 0, 1]])
 
-K_initial = np.array([[f_x, 0, c_x],
+K_initial = np.array([[f_x, 50, c_x],
                       [0, f_y, c_y],
                       [0, 0, 1]])
+
+K_temp = K_initial
 
 # Example usage
 folder = 'Treasure_Chest/'
@@ -192,14 +210,18 @@ for i in tqdm(range(len(image_paths))):
     points1 = np.float32([keypoints1[m.queryIdx].pt for m in matches])
     points2 = np.float32([keypoints2[m.trainIdx].pt for m in matches])
 
-    K_refine = refine_camera_matrix(i_m_a_g_e, K_initial)
-    K_initial = K_refine
+    K_refine = refine_camera_matrix(i_m_a_g_e, Ks[-1] if len(Ks) > 0 else K_initial)
+    # K_initial = K_refine
+    for itr in range(len(K_initial)):
+        for jtr in range(len(K_initial[0])):
+            if int(K_refine[itr][jtr]) != 0:
+                K_initial[itr][jtr] *= (K_refine[itr][jtr])/abs(K_refine[itr][jtr])
     Ks.append(K_refine)
 
     # Assuming 'points1' and 'points2' are arrays of matched keypoints from two images
     # And 'K' is the camera matrix obtained from calibration
-    E, mask = cv2.findEssentialMat(points1, points2, K_refine, method=cv2.RANSAC, prob=0.999, threshold=1)
-    _, R, t, mask = cv2.recoverPose(E, points1, points2, K_refine)
+    E, mask = cv2.findEssentialMat(points1, points2, K_initial, method=cv2.RANSAC, prob=0.999, threshold=1)
+    _, R, t, mask = cv2.recoverPose(E, points1, points2, K_initial)
 
     projMatr1 = np.hstack((K_refine, np.zeros((3, 1))))
     projMatr2 = K_refine @ np.hstack((R, t.reshape(3, 1)))
@@ -216,6 +238,7 @@ for i in tqdm(range(len(image_paths))):
     temp_pcd.points = o3d.utility.Vector3dVector(new_temp_points)
 
     temp_pcd, _ = temp_pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=0.15)
+    temp_pcd = normalize_points(temp_pcd)
 
     # if not x_scale:
     #     points_of_pcd = np.asarray(temp_pcd.points)
@@ -237,13 +260,14 @@ for i in tqdm(range(len(image_paths))):
 
     colors = [[c[2] / 255, c[1] / 255, c[0] / 255] for c in colors]
     temp_pcd.colors = o3d.utility.Vector3dVector(colors[:len(temp_pcd.points)])
+    print(f"Number of points in the point cloud: {len(np.asarray(temp_pcd.points))}")
 
     if i % 15 == 0 or i == len(image_paths) - 1:
-        o3d.io.write_point_cloud(f'{ply_folder}/point_cloud_{i}.ply', temp_pcd)
+        # o3d.io.write_point_cloud(f'{ply_folder}/point_cloud_{i}.ply', temp_pcd)
         o3d.visualization.draw_geometries([temp_pcd], mesh_show_wireframe=True)
+        pcds.append(temp_pcd)
 
     # o3d.visualization.draw_geometries([temp_pcd])
-    pcds.append(temp_pcd)
 
 
 def preprocess_point_cloud_2(pcd, voxel_size):
@@ -408,27 +432,26 @@ def process_point_clouds(pcds, voxel_size=0.001, threshold=100, voxel_multiple=1
     return pcd_combined_down
 
 
-# finito_pcds = []
-#
-# print(f"Processing point clouds...")
-# for i in tqdm(range(1, len(pcds))):
-#     if i == 1:
-#         pcd_first = pcds[i - 1]
-#         pcd_second = pcds[i]
-#     else:
-#         pcd_first = finito_pcds[-1]
-#         pcd_second = pcds[i]
-#
-#     if i % 10 == 0:
-#         draw_pcds(pcd_first, pcd_second)
-#
-#     input_pcds = [pcd_first, pcd_second]
-#
-#     final_cloud = process_point_clouds(input_pcds, voxel_size=0.001, threshold=100, voxel_multiple=150,
-#                                        iterations=12000000)
-#     finito_pcds.append(final_cloud)
+finito_pcds = []
+print(f"Processing point clouds...")
+for i in tqdm(range(1, len(pcds))):
+    if i == 1:
+        pcd_first = pcds[i - 1]
+        pcd_second = pcds[i]
+    else:
+        pcd_first = finito_pcds[-1]
+        pcd_second = pcds[i]
+
+    if i % 10 == 0:
+        draw_pcds(pcd_first, pcd_second)
+
+    input_pcds = [pcd_first, pcd_second]
+
+    final_cloud = process_point_clouds(input_pcds, voxel_size=0.001, threshold=100, voxel_multiple=150,
+                                       iterations=12000000)
+    finito_pcds.append(final_cloud)
     # if i % 3 == 0:
-    #     o3d.visualization.draw_geometries([pcds[i]])
+    #     o3d.visualization.draw_plotly([pcds[i]])
 
 # o3d.visualization.draw_geometries([finito_pcds[-1]])
 

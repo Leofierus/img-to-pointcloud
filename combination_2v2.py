@@ -179,7 +179,7 @@ for i in tqdm(range(len(image_paths))):
 # pcd_matches = []
 pcds = []
 window_size = 1
-max_pc_idx = 96
+max_pc_idx = 20
 
 print("\nMatching keypoints and descriptors...")
 for i in tqdm(pc_list):
@@ -251,8 +251,8 @@ for i in tqdm(range(1, len(pcds))):
     else:
         pcd_first = finito_pcds[-1]
         pcd_second = pcds[i]
-    if i % 3 == 0:
-        draw_pcds(pcd_first, pcd_second)
+    # if i % 3 == 0:
+    draw_pcds(pcd_first, pcd_second)
     pcd0_down, pdc0_fpfh = preprocess_point_cloud_2(pcd_first, voxel_size)
     pcd1_down, pdc1_fpfh = preprocess_point_cloud_2(pcd_second, voxel_size)
 
@@ -275,8 +275,8 @@ for i in tqdm(range(1, len(pcds))):
     print("[INFO] Transformation Matrix:")
     print(registered_images.transformation)
 
-    if i % 3 == 0:
-        draw_registration_result(pcd_first, pcd_second, registered_images)
+    # if i % 3 == 0:
+    draw_registration_result(pcd_first, pcd_second, registered_images)
 
     # o3d.visualization.draw_geometries([pcd_first, pcds[i+1]])
 
@@ -291,7 +291,7 @@ for i in tqdm(range(1, len(pcds))):
     pcd_combined_down = pcd_combined.voxel_down_sample(voxel_size=0.05)
     finito_pcds.append(pcd_combined_down)
 # pcd_combined_down = pcd_combined
-o3d.visualization.draw_geometries([finito_pcds[-1]])
+o3d.visualization.draw_plotly([finito_pcds[-1]])
 print('Done!')
 
 # pcd_combined_down, _ = pcd_combined_down.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
