@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 import plotly.graph_objs as go
 import copy
 
-ply_folder = 'Treasure_Chest/jpg'
+ply_folder = 'Treasure_Chest/plys-2v2'
 ply_files = os.listdir(ply_folder)
-ply_files = [f for f in ply_files if f.endswith('.ply') and f != 'merged.ply']
+ply_files = [f for f in ply_files if f.endswith('.ply') and f == 'merged.ply']
 
 # ply_folder = 'Treasure_Chest/plys'
 # ply_files = ['merged.ply']
@@ -20,8 +20,10 @@ plys = []
 # Generate random colors for each ply file
 # colors = np.random.rand(len(ply_files), 3)
 for i in tqdm(range(len(ply_files))):
+    if i==1:
+        continue
     ply = o3d.io.read_point_cloud(os.path.join(ply_folder, ply_files[i]))
-    tetra_mesh, pt_map = o3d.geometry.TetraMesh.create_from_point_cloud(ply)
+    # tetra_mesh, pt_map = o3d.geometry.TetraMesh.create_from_point_cloud(ply)
     # mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(ply, 0.001, tetra_mesh, pt_map)
     # mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(ply, 0.01)
     # mesh_2 = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
@@ -33,7 +35,7 @@ for i in tqdm(range(len(ply_files))):
     # print(f"point cloud has {max_label + 1} clusters")
     # colors = plt.get_cmap("tab20")(labels / (max_label if max_label > 0 else 1))
     # ply.colors = o3d.utility.Vector3dVector(colors[:, :3])
-    o3d.visualization.draw_geometries([ply])
+    # o3d.visualization.draw_geometries([ply])
     # o3d.visualization.draw_geometries([ply, mesh])
     # o3d.visualization.draw_geometries([ply, mesh_2])
     plys.append(ply)
