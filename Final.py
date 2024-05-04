@@ -4,7 +4,6 @@ import cv2
 import os
 import copy
 import open3d as o3d
-
 from scipy.optimize import least_squares
 from tqdm import tqdm
 
@@ -40,7 +39,6 @@ def refine_camera_matrix(K_initial, points1, points2):
         K_new = np.array([[f, 0, cx], [0, f, cy], [0, 0, 1]])
         total_error = 0
         for points3D, points2D, P in zip(obj_points, img_points, camera_matrices):
-            P_new = K_new @ np.linalg.inv(K_initial) @ P
             img_points_projected = cv2.projectPoints(points3D, np.eye(3), np.zeros(3), K_new, None)[0]
             total_error += np.sum((img_points_projected.squeeze() - points2D) ** 2)
 
@@ -116,8 +114,8 @@ def arrange_point_clouds(point_clouds):
 
     return point_clouds
 
-
 # Constants
+
 # Create the sift object
 sift = cv2.SIFT_create(contrastThreshold=0.045)
 
@@ -148,12 +146,14 @@ folder = 'Treasure_Chest/'
 images = []
 image_path = sorted([img for img in os.listdir(folder) if img.endswith(".png")], key=numerical_sort_key)
 
-# Use the output of vocabulary tree to index the matches
+# Use the output of vocabulary tree to index the closest looking images
 # Paper: https://ieeexplore.ieee.org/document/1641018
-image_idx = [35, 42, 43, 40, 41, 44, 39, 38, 45, 46, 47, 36, 37, 48, 34, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
-             60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 33, 73, 32, 74, 31, 75, 76, 77, 78, 79, 80, 81, 82,
-             83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
-             15, 16, 17, 18, 19, 20, 21, 22, 30, 29, 23, 24, 25, 26, 27, 28]
+image_idx = [35, 42, 43, 40, 41, 44, 39, 38, 45, 46, 47, 36, 37, 48, 34, 49, 50, 51,
+             52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+             70, 71, 72, 33, 73, 32, 74, 31, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84,
+             85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 1, 2, 3, 4, 5, 6, 7, 8,
+             9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 30, 29, 23, 24,
+             25, 26, 27, 28]
 
 image_paths = []
 kd = []
@@ -170,8 +170,8 @@ for i in range(len(image_idx) - 1):
     temp = [image_path[image_idx[i] - 1], image_path[image_idx[i + 1] - 1]]
     image_paths.append(temp)
 
-
 # Logic
+
 print("Calculating keypoints and descriptors...")
 for i in tqdm(range(len(image_path))):
     img = cv2.imread(os.path.join(folder, image_path[i]), cv2.IMREAD_GRAYSCALE)
@@ -224,6 +224,7 @@ for i in tqdm(range(len(image_paths))):
 
     temp_pcd, _ = temp_pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=0.05)
 
+    # Add in color information to the point cloud
     colors = []
     img = cv2.imread(os.path.join(folder, image_paths[i][0]))
     for pt in points1:
