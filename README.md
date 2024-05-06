@@ -41,3 +41,14 @@ https://github.com/Leofierus/img-to-pointcloud/assets/51908556/2e847800-0b56-43b
 https://github.com/Leofierus/img-to-pointcloud/assets/51908556/e6eb2454-a75a-4a1b-8de6-f0e290b82906
 
 </details>
+
+## Execution
+
+To execute the project, follow these steps:
+
+1. Clone the repository to your local machine.
+2. Install all the necessary modules.
+3. In the terminal or command prompt, navigate to the project directory.
+4. Run the command 'python final.py' to execute the final project file.
+
+Ensure that you have Python installed on your system and that the necessary dependencies are installed before running the code.
