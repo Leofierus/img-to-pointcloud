@@ -3,7 +3,7 @@ This repository contains the code to create a pointcloud from a set of images. T
 
 ## Code Structure
 Files in the repository:
-- `Final.py`: The main file to run the code. Contains the final logic to create the pointcloud.
+- `Final.py`: The main file to run the code. Contains the final logic to create the pointcloud. Will require the libraries mentioned in the imports.
 - `load_plys.py`: Contains the code to load the pointclouds from the PLY files and visualize them.
 - `sift_det.py`: Contains the code to detect the keypoints and descriptors using SIFT and visualize them.
 - `combination(x).py`, `Recalibrated(x).py`, `test(x).py` & `Optimized_K.py`: Contains intermediate code created during testing and optimization.
