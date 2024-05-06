@@ -1,1 +1,0 @@
-Camera Info:-> Focal Length: 39.14mm, Camera width: 36mm
