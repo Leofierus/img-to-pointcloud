@@ -18,13 +18,26 @@ Folders in the repository:
 - `Well(x)`: Contains images of a well taken from different angles.
 
 ## Pointclouds
-### Treasure Chest
-- ![Treasure Chest Capture in Blender](Videos/tc_cap.mp4)
-- ![Intermediate Treasure Chest pointcloud](Videos/int_tcs.mp4)
-- ![Intermediate Treasure Chest pointcloud](Videos/int_tcs%20(online-video-cutter.com).mp4)
-- ![Final Treasure Chest pointcloud](Videos/fin_tcs.mp4)
+<details>
+<summary>Treasure Chest</summary>
 
-### Well
-- ![Well Capture in Blender](Videos/well_cap.mp4)
-- ![Intermediate Well pointcloud](Videos/int_well.mp4)
-- ![Final Well pointcloud](Videos/fin_well.mp4)
+https://github.com/Leofierus/img-to-pointcloud/assets/51908556/50cfb51e-9ee3-4d77-8e2f-e4965f426ca6
+
+https://github.com/Leofierus/img-to-pointcloud/assets/51908556/1dd3eb53-f6bf-4616-a9f6-96c85e65dbdd
+
+https://github.com/Leofierus/img-to-pointcloud/assets/51908556/889bd799-969b-4a90-aa1c-6de8210caa51
+
+https://github.com/Leofierus/img-to-pointcloud/assets/51908556/aa4a86e0-2af6-40c0-b4ab-881a8ee45376
+
+</details>
+
+<details>
+<summary>Well</summary>
+
+https://github.com/Leofierus/img-to-pointcloud/assets/51908556/24c841ec-58da-4212-b0e5-9982d368842a
+
+https://github.com/Leofierus/img-to-pointcloud/assets/51908556/2e847800-0b56-43bd-a889-df58e6d4c755
+
+https://github.com/Leofierus/img-to-pointcloud/assets/51908556/e6eb2454-a75a-4a1b-8de6-f0e290b82906
+
+</details>
